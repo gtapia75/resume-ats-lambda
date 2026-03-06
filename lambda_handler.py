@@ -91,15 +91,21 @@ def _process_request(bucket: str, request_id: str) -> dict[str, Any]:
     s3.download_file(bucket, jd_key, jd_path)
 
     from resume_ats.pdf_io import extract_text_from_pdf, build_resume_pdf
-    from resume_ats.anthropic_tailor import tailor_resume
 
     resume_text = extract_text_from_pdf(resume_path)
     jd_text = extract_text_from_pdf(jd_path)
 
     if not (resume_text and resume_text.strip()):
-        return {"error": "No se pudo extraer texto del currículum. Comprueba que el PDF no sea solo imagen."}
+        return {
+            "error": "No se pudo extraer texto del currículum. Comprueba que el PDF no esté vacío, no sea solo imagen y contenga texto seleccionable."
+        }
+
     if not (jd_text and jd_text.strip()):
-        return {"error": "No se pudo extraer texto de la descripción del puesto."}
+        return {
+            "error": "No se pudo extraer texto de la descripción del puesto. Comprueba que el PDF no esté vacío y contenga texto seleccionable."
+        }
+
+    from resume_ats.anthropic_tailor import tailor_resume
 
     structured = tailor_resume(resume_text, jd_text)
     build_resume_pdf(structured, out_path)

@@ -13,6 +13,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    container:
+      image: public.ecr.aws/sam/build-python3.11:latest-x86_64
+
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       LAMBDA_FUNCTION_NAME: ResumeAtsFunction
@@ -21,14 +24,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Build Lambda package
         run: |
+          rm -rf package deploy.zip
           mkdir package
+          python -m pip install --upgrade pip
           pip install -r requirements-resume.txt -t package
           cp lambda_handler.py package/
           cp -r resume_ats package/

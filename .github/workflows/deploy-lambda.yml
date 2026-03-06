@@ -13,9 +13,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    container:
-      image: public.ecr.aws/sam/build-python3.11:latest-x86_64
-
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       LAMBDA_FUNCTION_NAME: ResumeAtsFunction
@@ -24,16 +21,23 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Build Lambda package
+      - name: Build Lambda package in AWS SAM container
         run: |
           rm -rf package deploy.zip
-          mkdir package
-          python -m pip install --upgrade pip
-          pip install -r requirements-resume.txt -t package
-          cp lambda_handler.py package/
-          cp -r resume_ats package/
-          cd package
-          zip -r ../deploy.zip .
+
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/var/task \
+            -w /var/task \
+            public.ecr.aws/sam/build-python3.11:latest-x86_64 \
+            /bin/sh -lc "
+              python -m pip install --upgrade pip &&
+              mkdir -p package &&
+              pip install -r requirements-resume.txt -t package &&
+              cp lambda_handler.py package/ &&
+              cp -r resume_ats package/ &&
+              cd package &&
+              zip -r ../deploy.zip .
+            "
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -44,5 +48,5 @@ jobs:
       - name: Deploy Lambda
         run: |
           aws lambda update-function-code \
-            --function-name $LAMBDA_FUNCTION_NAME \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
             --zip-file fileb://deploy.zip

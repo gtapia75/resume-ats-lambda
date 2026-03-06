@@ -7,6 +7,7 @@ import json
 import os
 import uuid
 from typing import Any
+import traceback
 
 import boto3
 
@@ -162,4 +163,7 @@ def lambda_handler(event: dict, context: Any) -> dict[str, Any]:
 
         return _response(404, {"error": "Ruta no encontrada"})
     except Exception as e:
+        print("Unhandled exception in lambda_handler:")
+        traceback.print_exc()
         return _response(500, {"error": str(e)})
+        #return _response(500, {"error": str(e)})

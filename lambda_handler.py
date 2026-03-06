@@ -17,7 +17,7 @@ DOWNLOAD_URL_EXPIRY = 300
 
 # CORS: set to your front-end origin in production, or "*" for testing
 CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
-
+APP_KEY = os.environ.get("APP_KEY")
 
 def _cors_headers() -> dict[str, str]:
     return {
@@ -137,6 +137,13 @@ def lambda_handler(event: dict, context: Any) -> dict[str, Any]:
 
     if method == "OPTIONS":
         return _response(200, {})
+
+    # --- X-App-Key validation ---
+    headers = event.get("headers") or {}
+    incoming_key = headers.get("x-app-key")
+
+    if APP_KEY and incoming_key != APP_KEY:
+        return _response(403, {"error": "Unauthorized"})
 
     bucket = os.environ.get("RESUME_ATS_BUCKET")
     if not bucket:
